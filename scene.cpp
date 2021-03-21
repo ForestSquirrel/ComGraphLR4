@@ -6,6 +6,7 @@ Scene::Scene(QObject* parent): QGraphicsScene(parent)
     circleToDraw = 0;
     rectItem = 0;
     dotToDraw = 0;
+    controlPoint = 0;
     //init axes
     QVector<QLineF> axis = {
         {0,0,200,0},
@@ -60,6 +61,10 @@ void Scene::setMode(Mode mode){
         makeItemsControllable(false);
         vMode = QGraphicsView::NoDrag;
     }
+    else if (mode == DrawSpline){
+        makeItemsControllable(false);
+        vMode = QGraphicsView::NoDrag;
+    }
     QGraphicsView* mView = views().at(0);
     if(mView)
         mView->setDragMode(vMode);
@@ -71,6 +76,7 @@ void Scene::makeItemsControllable(bool areControllable){
                       areControllable);
         item->setFlag(QGraphicsItem::ItemIsMovable,
                       areControllable);
+        item->setFlag(QGraphicsItem::ItemSendsGeometryChanges, true);
     }
 }
 
@@ -80,6 +86,8 @@ void Scene::mousePressEvent(QGraphicsSceneMouseEvent *event){
     else if(sceneMode == DrawCircle)
         origPoint = event->scenePos();
     else if (sceneMode == DrawDot)
+        origPoint = event->scenePos();
+    else if (sceneMode == DrawSpline)
         origPoint = event->scenePos();
     QGraphicsScene::mousePressEvent(event);
 }
@@ -104,12 +112,12 @@ void Scene::mouseMoveEvent(QGraphicsSceneMouseEvent *event){
             if (!rectItem){
             rectItem = new QGraphicsRectItem;
             this->addItem(rectItem);
-            rectItem->setPen(QPen(Qt::gray, 2, Qt::DashLine));
+            rectItem->setPen(QPen(Qt::gray, 2, Qt::SolidLine));
             rectItem->setPos(origPoint);
             }
             //show rect _end
             this->addItem(circleToDraw);
-            circleToDraw->setPen(QPen(Qt::black, 3, Qt::SolidLine));
+            circleToDraw->setPen(QPen(Qt::black, 2, Qt::SolidLine));
             circleToDraw->setPos(origPoint);
         }
         circleToDraw->setRect(0,0,
@@ -152,16 +160,56 @@ void Scene::mouseReleaseEvent(QGraphicsSceneMouseEvent *event){
                            2,2);
         dotToDraw = 0;
     }
+    else if (sceneMode == DrawSpline){
+        if (!controlPoint){
+            controlPoint = new QGraphicsControlPointItem;
+            this->addItem(controlPoint);
+            controlPoint->setPos(origPoint);
+        }
+        spline.controlPoints.push_back(controlPoint);
+        controlPoint = 0;
+        if (spline.controlPoints.size() > 1){
+            spline.updateSpline(this, itemToDraw);
+        }
+    }
+    else if (sceneMode == SelectObject){
+        bool updatable = true;
+        if (selectedItems().size() >= 1){
+            foreach(QGraphicsItem* item, selectedItems()){
+                if (item->type() != QAbstractGraphicsShapeItem::UserType + 1){
+                    updatable = false;
+                    break;
+                }
+            }
+        }
+        else {
+            updatable = false;
+        }
+        if (updatable){
+            spline.updateSpline(this, itemToDraw);
+        }
+        else{
+            qDebug() << "Wrong Type";
+        }
+    }
     QGraphicsScene::mouseReleaseEvent(event);
 }
 
 void Scene::keyPressEvent(QKeyEvent *event){
     if(event->key() == Qt::Key_Delete)
         foreach(QGraphicsItem* item, selectedItems()){
+            if (item->type() == QAbstractGraphicsShapeItem::UserType + 1){
+                foreach (QGraphicsControlPointItem *item1, spline.controlPoints){
+                    if (item1->sceneBoundingRect() == item->sceneBoundingRect()){
+                        spline.controlPoints.removeOne(item1);
+                    }
+                }
+                spline.updateSpline(this, itemToDraw);
+            }
             removeItem(item);
             delete item;
         }
-    else if (event->key() == Qt::Key_2){ //ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+    else if (event->key() == Qt::Key_2){
         QVector<QPointF> dots;
         area.clear();
         if (selectedItems().size() >= 2){
@@ -201,7 +249,6 @@ void Scene::keyPressEvent(QKeyEvent *event){
                          itemToDraw = new QGraphicsLineItem;
                          this->addItem(itemToDraw);
                          itemToDraw->setPen(QPen(Qt::red, 2, Qt::SolidLine));
-                         //itemToDraw->setPos(Line.graphicsPtr->pos());
                          this->removeItem(Line.graphicsPtr);
                      }
                      itemToDraw->setLine(Line);
@@ -212,6 +259,9 @@ void Scene::keyPressEvent(QKeyEvent *event){
         }
         else
             qDebug() << "not enough points";
+    }
+     else if (event->key() == Qt::Key_3){
+        spline.updateSpline(this, itemToDraw);
     }
     else
         QGraphicsScene::keyPressEvent(event);

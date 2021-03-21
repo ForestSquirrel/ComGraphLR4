@@ -26,6 +26,7 @@ private:
     QAction* selectAction;
     QAction* circleAction;
     QAction* dotAction;
+    QAction* splineAction;
     QActionGroup *actionGroup;
     QToolBar* drawingToolBar;
 };

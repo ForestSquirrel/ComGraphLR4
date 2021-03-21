@@ -1,6 +1,7 @@
 QT += widgets
 
 SOURCES += \
+    QGraphicsControlPointItem.cpp \
     main.cpp \
     scene.cpp \
     scene.cpp \
@@ -9,6 +10,9 @@ SOURCES += \
 HEADERS += \
     GraphicsHandler.h \
     IntersectionHandler.h \
+    QGraphicsControlPointItem.h \
+    QgraphicsControlPointitem.h \
+    SplineHandler.h \
     assist.h \
     line.h \
     scene.h \
@@ -20,6 +24,7 @@ RESOURCES += \
     userdrawing.qrc
 
 DISTFILES += \
+    icons/Spline.png \
     icons/circle.png \
     icons/dot.png \
     icons/line.png \

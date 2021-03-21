@@ -10,11 +10,12 @@
 #include <QVector>
 #include <QDebug>
 #include "IntersectionHandler.h"
-
+#include "SplineHandler.h"
+#include "QGraphicsControlPointItem.h"
 class Scene : public QGraphicsScene
 {
 public:
-    enum Mode {NoMode, SelectObject, DrawLine, DrawCircle, DrawDot};
+    enum Mode {NoMode, SelectObject, DrawLine, DrawCircle, DrawDot, DrawSpline};
     Scene(QObject* parent = 0);
     void setMode(Mode mode);
 protected:
@@ -26,6 +27,7 @@ protected:
     void wheelEvent (QGraphicsSceneWheelEvent * event);
 private:
     Mode sceneMode;
+    BezierSpline spline;
     QList<line> Lines;
     QPointF origPoint;
     QGraphicsLineItem* itemToDraw;
@@ -33,6 +35,7 @@ private:
     QGraphicsEllipseItem* dotToDraw;
     QGraphicsSimpleTextItem* textItem;
     QGraphicsRectItem *rectItem;
+    QGraphicsControlPointItem* controlPoint;
     QString data;
     GraphicsArea area;
     void makeItemsControllable(bool areControllable);
