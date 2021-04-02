@@ -1,7 +1,6 @@
 #include "mainwindow.h"
 
-MainWindow::MainWindow()
-{
+MainWindow::MainWindow() {
     scene = new Scene(this);
     scene->setSceneRect(0,0,200,200);
     view = new QGraphicsView(scene);

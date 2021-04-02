@@ -13,6 +13,7 @@ HEADERS += \
     QGraphicsControlPointItem.h \
     QgraphicsControlPointitem.h \
     SplineHandler.h \
+    SurfaceHandler.h \
     assist.h \
     line.h \
     scene.h \

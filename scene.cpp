@@ -1,13 +1,16 @@
 #include "scene.h"
 #include "GraphicsHandler.h"
+
 Scene::Scene(QObject* parent): QGraphicsScene(parent)
 {
     sceneMode = NoMode;
+    itemToDraw = 0;
     circleToDraw = 0;
     rectItem = 0;
     dotToDraw = 0;
     controlPoint = 0;
-    //init axes
+    drawAxis(this, itemToDraw);
+   /* //init 2D axes
     QVector<QLineF> axis = {
         {0,0,200,0},
         {0,0,0,200},
@@ -37,7 +40,7 @@ Scene::Scene(QObject* parent): QGraphicsScene(parent)
     textItem->setPos(200,0);
     textItem->setText("y");
     textItem = 0;
-    //init axes _end
+    //init axes _end*/
 
 }
 

@@ -12,6 +12,7 @@
 #include "IntersectionHandler.h"
 #include "SplineHandler.h"
 #include "QGraphicsControlPointItem.h"
+#include "SurfaceHandler.h"
 class Scene : public QGraphicsScene
 {
 public:
