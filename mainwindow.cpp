@@ -38,6 +38,11 @@ void MainWindow::createActions(){
     splineAction->setIcon(QIcon(":/icons/Spline.png"));
     splineAction->setCheckable(true);
 
+    surfaceAction = new QAction("Draw Spline", this);
+    surfaceAction->setData(int(Scene::DrawSurface));
+    surfaceAction->setIcon(QIcon(":/icons/Surface.png"));
+    surfaceAction->setCheckable(true);
+
     actionGroup = new QActionGroup(this);
     actionGroup->setExclusive(true);
     actionGroup->addAction(lineAction);
@@ -45,6 +50,7 @@ void MainWindow::createActions(){
     actionGroup->addAction(circleAction);;
     actionGroup->addAction(dotAction);
     actionGroup->addAction(splineAction);
+    actionGroup->addAction(surfaceAction);
 }
 
 void MainWindow::createConnections(){
@@ -64,4 +70,5 @@ void MainWindow::createToolBar(){
     drawingToolBar->addAction(circleAction);
     drawingToolBar->addAction(dotAction);
     drawingToolBar->addAction(splineAction);
+    drawingToolBar->addAction(surfaceAction);
 }

@@ -4,44 +4,30 @@
 Scene::Scene(QObject* parent): QGraphicsScene(parent)
 {
     sceneMode = NoMode;
+    gd = new MeshDialog;
     itemToDraw = 0;
     circleToDraw = 0;
     rectItem = 0;
     dotToDraw = 0;
     controlPoint = 0;
-    drawAxis(this, itemToDraw);
-   /* //init 2D axes
-    QVector<QLineF> axis = {
-        {0,0,200,0},
-        {0,0,0,200},
-        {200,0,180, 10},
-        {200,0,180,-10},
-        {0,200,10,180},
-        {0,200,-10,180}
-    };
-    for (auto i = 0; i < axis.length(); i++) {
-        itemToDraw = new QGraphicsLineItem;
-        this->addItem(itemToDraw);
-        itemToDraw->setLine(axis.at(i));
-        itemToDraw = 0;
-    }
-    textItem = new QGraphicsSimpleTextItem;
-    this->addItem(textItem);
-    textItem->setPos(5,0);
-    textItem->setText("0");
-    textItem = 0;
-    textItem = new QGraphicsSimpleTextItem;
-    this->addItem(textItem);
-    textItem->setPos(0,200);
-    textItem->setText("x");
-    textItem=0;
-    textItem = new QGraphicsSimpleTextItem;
-    this->addItem(textItem);
-    textItem->setPos(200,0);
-    textItem->setText("y");
-    textItem = 0;
-    //init axes _end*/
+    cp3d = 0;
 
+    xAxis = new QGraphicsLineItem;
+    this->addItem(xAxis);
+    xAxis->setPen(QPen(Qt::green, 1, Qt::SolidLine));
+
+    yAxis = new QGraphicsLineItem;
+    this->addItem(yAxis);
+    yAxis->setPen(QPen(Qt::red, 2, Qt::SolidLine));
+
+    zAxis = new QGraphicsLineItem;
+    this->addItem(zAxis);
+    zAxis->setPen(QPen(Qt::blue, 3, Qt::SolidLine));
+
+    angles.alpha = 0;
+    angles.beta = 0;
+    angles.gamma = 0;
+    drawAxis(xAxis, yAxis, zAxis, angles.alpha, angles.beta, angles.gamma);
 }
 
 void Scene::setMode(Mode mode){
@@ -65,6 +51,10 @@ void Scene::setMode(Mode mode){
         vMode = QGraphicsView::NoDrag;
     }
     else if (mode == DrawSpline){
+        makeItemsControllable(false);
+        vMode = QGraphicsView::NoDrag;
+    }
+    else if (mode == DrawSurface){
         makeItemsControllable(false);
         vMode = QGraphicsView::NoDrag;
     }
@@ -92,7 +82,13 @@ void Scene::mousePressEvent(QGraphicsSceneMouseEvent *event){
         origPoint = event->scenePos();
     else if (sceneMode == DrawSpline)
         origPoint = event->scenePos();
+    else if (sceneMode == DrawSurface)
+        origPoint = event->scenePos();
     QGraphicsScene::mousePressEvent(event);
+}
+void Scene::mouseDoubleClickEvent(QGraphicsSceneMouseEvent *e){
+    QGraphicsScene::mouseDoubleClickEvent(e);
+    updateSurface();
 }
 
 void Scene::mouseMoveEvent(QGraphicsSceneMouseEvent *event){
@@ -132,6 +128,16 @@ void Scene::mouseMoveEvent(QGraphicsSceneMouseEvent *event){
                            event->scenePos().x() - origPoint.x()
                            );
         data.clear();
+    }
+    else if (sceneMode == DrawSurface){
+        if (!circleToDraw){
+            circleToDraw =  new QGraphicsEllipseItem;
+            this->addItem(circleToDraw);
+            circleToDraw->setPen(QPen(Qt::red, 2, Qt::SolidLine));
+            circleToDraw->setRect(0,0,
+                                  15,15);
+        }
+        circleToDraw->setPos(rotAndProjToPoint(QVector4D(event->scenePos().x(), event->scenePos().y(), 0, 1), angles.alpha, angles.beta, angles.gamma));
     }
     else
         QGraphicsScene::mouseMoveEvent(event);
@@ -175,6 +181,23 @@ void Scene::mouseReleaseEvent(QGraphicsSceneMouseEvent *event){
             spline.updateSpline(this, itemToDraw);
         }
     }
+    else if (sceneMode == DrawSurface){
+        this->removeItem(circleToDraw);
+        circleToDraw = 0;
+        cp3d = 0;
+        if (!cp3d){
+            cp3d = new cp3D;
+            this->addItem(cp3d);
+            cp3d->angles.alpha = angles.alpha;
+            cp3d->angles.beta = angles.beta;
+            cp3d->angles.gamma = angles.gamma;
+            cp3d->dx = event->scenePos().x();
+            cp3d->dy = event->scenePos().y();
+            cp3d->setPos(rotAndProjToPoint(cp3d->point(),angles.alpha, angles.beta, angles.gamma));
+        }
+        cp3dvec.push_back(cp3d);
+        cp3d = 0;
+    }
     else if (sceneMode == SelectObject){
         bool updatable = true;
         if (selectedItems().size() >= 1){
@@ -190,9 +213,6 @@ void Scene::mouseReleaseEvent(QGraphicsSceneMouseEvent *event){
         }
         if (updatable){
             spline.updateSpline(this, itemToDraw);
-        }
-        else{
-            qDebug() << "Wrong Type";
         }
     }
     QGraphicsScene::mouseReleaseEvent(event);
@@ -242,7 +262,7 @@ void Scene::keyPressEvent(QKeyEvent *event){
              itemToDraw = 0;
 
              //----------------match intersections----------------------------
-             QList<line> collided = area.CyrusBeckClip(Lines); //находим линии отсекаемые областью
+             QList<line> collided = area.CyrusBeckClip(Lines);
              if (collided.isEmpty()){
                  qDebug() << "empty area";
              }
@@ -265,6 +285,27 @@ void Scene::keyPressEvent(QKeyEvent *event){
     }
      else if (event->key() == Qt::Key_3){
         spline.updateSpline(this, itemToDraw);
+    }
+    else if (event->key() == Qt::Key_Right){
+        float tempA = qRadiansToDegrees(angles.alpha);
+        tempA++;
+        angles.alpha = qDegreesToRadians(tempA);
+        drawAxis(xAxis, yAxis, zAxis, angles.alpha, angles.beta, angles.gamma);
+        updateSurface();
+    }
+    else if (event->key() == Qt::Key_Down){
+        float tempB = qRadiansToDegrees(angles.beta);
+        tempB++;
+        angles.beta = qDegreesToRadians(tempB);
+        drawAxis(xAxis, yAxis, zAxis, angles.alpha, angles.beta, angles.gamma);
+        updateSurface();
+    }
+    else if (event->key() == Qt::Key_Up){
+        float tempG = qRadiansToDegrees(angles.gamma);
+        tempG++;
+        angles.gamma = qDegreesToRadians(tempG);
+        drawAxis(xAxis, yAxis, zAxis, angles.alpha, angles.beta, angles.gamma);
+        updateSurface();
     }
     else
         QGraphicsScene::keyPressEvent(event);
@@ -307,9 +348,23 @@ void Scene::keyReleaseEvent(QKeyEvent *event){
             }
             itemToDraw = 0;
          }
-         else
-            QGraphicsScene::keyReleaseEvent(event);
      }
+     else if (event->key() == Qt::Key_G && sceneMode == DrawSurface){
+         gd->setModal(true);
+         gd->show();
+         if (gd->exec() == QDialog::Accepted){
+             surface = BezierSurface(gd->first(), gd->second());
+         }
+         this->cp3dvec.clear();
+         for (auto i = 0; i < surface.sizeM; i++)
+             for (auto j = 0; j < surface.sizeN; j++){
+                 this->addItem(surface.cpVec[i][j]);
+                 this->cp3dvec.push_back(surface.cpVec[i][j]);
+             }
+         updateSurface();
+     }
+     else
+         QGraphicsScene::keyReleaseEvent(event);
 }
 
 void Scene::wheelEvent(QGraphicsSceneWheelEvent *event){
@@ -323,4 +378,34 @@ void Scene::wheelEvent(QGraphicsSceneWheelEvent *event){
            selectedItems().at(0)->setScale(scaleFactor);
        }
        QGraphicsScene::wheelEvent(event);
+}
+
+void Scene::updateSurface(){
+    foreach (cp3D *item, this->cp3dvec){
+        updateItem(item);
+    }
+    updateCLines();
+    foreach (QGraphicsLineItem *item, this->surface.gridVec){
+        this->removeItem(item);
+    }
+    surface.angles.alpha = this->angles.alpha;
+    surface.angles.beta = this->angles.beta;
+    surface.angles.gamma=this->angles.gamma;
+    surface.makeSurface();
+    foreach (QGraphicsLineItem *item, this->surface.gridVec){
+        this->addItem(item);
+    }
+
+}
+void Scene::updateItem(cp3D *item){
+    item->setPos(rotAndProjToPoint(item->point(), angles.alpha, angles.beta, angles.gamma));
+}
+void Scene::updateCLines(){
+    foreach (QGraphicsLineItem *item, this->surface.clVec){
+        this->removeItem(item);
+    }
+    surface.makeCLines();
+    foreach (QGraphicsLineItem *item, this->surface.clVec){
+        this->addItem(item);
+    }
 }

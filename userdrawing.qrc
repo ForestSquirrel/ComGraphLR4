@@ -5,5 +5,6 @@
         <file>icons/circle.png</file>
         <file>icons/dot.png</file>
         <file>icons/Spline.png</file>
+        <file>icons/Surface.png</file>
     </qresource>
 </RCC>
