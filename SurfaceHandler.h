@@ -32,7 +32,24 @@ inline QVector4D rotAndProj(QPointF point, float alpha, float beta, float gama){
     res = res*to2D;
     return res;
 }
-
+inline QVector4D rot(QVector4D point, float alpha, float beta, float gama){
+    QVector4D temp(point);
+    QMatrix4x4 rotX( 1, 0,              0,           0,
+                     0, qCos(alpha),    qSin(alpha), 0,
+                     0, -1*qSin(alpha), qCos(alpha), 0,
+                     0, 0,              0,           1);
+    QMatrix4x4 rotY( qCos(beta),   0,  -1*qSin(beta), 0,
+                     0,            1,  0,             0,
+                     qSin(beta),   0,  qCos(beta),    0,
+                     0,            0,  0,             1);
+    QMatrix4x4 rotZ( qCos(gama),    qSin(gama), 0,  0,
+                     -1*qSin(gama), qCos(gama), 0,  0,
+                     0,             0,          1,  0,
+                     0,             0,          0,  1);
+    QMatrix4x4 Rot = rotZ*rotY*rotX;
+    QVector4D res = temp*Rot;
+    return res;
+}
 inline QVector4D rotAndProj(QVector4D point, float alpha, float beta, float gama){
     QMatrix4x4 to2D(1,0,0,0,
                     0,1,0,0,

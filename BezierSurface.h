@@ -20,6 +20,7 @@ public:
 
     QVector<QVector4D> tempdotVec;
     QVector<QVector<QVector4D>> dotVec;
+    QVector<QVector<QVector4D>> dotnormVec;
     QVector<QGraphicsLineItem*> gridVec;
 
     int sizeM;
@@ -29,8 +30,9 @@ public:
         float alpha;
         float beta;
         float gamma;
-    };
-    angles angles;
+    } angles;
+
+    QVector<QGraphicsPolygonItem*> poly;
 
     BezierSurface(){
         clear();
@@ -70,6 +72,7 @@ public:
         tempdotVec.clear();
         gridVec.clear();
     }
+
     QVector4D lerp3D (QVector4D f, QVector4D l, float t) {
       QVector4D temp;
       temp.setX(  f.x() + t * ( l.x() -  f.x()) );
@@ -130,7 +133,7 @@ public:
             tempdotVec.clear();
         }
         //-------------------------------------
-        //draw meshgrid
+        //draw grid
         QGraphicsLineItem* tempL = 0;
         gridVec.clear();
         for (auto i = 0; i < dotVec.size(); i++)
@@ -182,7 +185,78 @@ public:
         }
         return res;
     }
-
+    bool handleRotation(){
+        QVector4D n = QVector4D(0, 0, 0, 1);
+        QVector4D n1 = QVector4D(0, 0, 1, 1);
+        if (rot(n1, angles.alpha, angles.beta, angles.gamma).z() > rot(n, angles.alpha, angles.beta, angles.gamma).z())
+            return true;
+        else
+            return false;
+    }
+    void handleDirections(){
+        QGraphicsPolygonItem* tempL = 0;
+        QPolygonF tempP;
+        bool siderot = handleRotation();
+        bool sidevecX = true;
+        bool sidevecY = true;
+        bool side = true;
+        QVector<QPointF> tempV;
+        poly.clear();
+        for (auto i = 0; i < dotVec.size(); i++)
+            for (auto j = 0; j < dotVec[i].size(); j++){
+                if(!tempL && j != dotVec[i].size() - 1 && i != dotVec.size() - 1){
+                        qDebug() << i <<' '<< j;
+                    if ( rot(dotVec[i][j], angles.alpha, angles.beta, angles.gamma).x() <= rot(dotVec[i][j+1], angles.alpha, angles.beta, angles.gamma).x() &&
+                         rot(dotVec[i+1][j], angles.alpha, angles.beta, angles.gamma).x() <= rot(dotVec[i+1][j+1], angles.alpha, angles.beta, angles.gamma).x()){
+                        sidevecX = true;
+                    } else{
+                        sidevecX = false;
+                    }
+                    if (rot(dotVec[i][j], angles.alpha, angles.beta, angles.gamma).y() <= rot(dotVec[i+1][j], angles.alpha, angles.beta, angles.gamma).y() &&
+                            rot(dotVec[i][j+1], angles.alpha, angles.beta, angles.gamma).y() <= rot(dotVec[i+1][j+1], angles.alpha, angles.beta, angles.gamma).y()){
+                        sidevecY = true;
+                    } else{
+                        sidevecY = false;
+                    }
+                    if (sidevecX == true && sidevecY == true && siderot == true)
+                        side = true;
+                    else if (sidevecX == false && sidevecY == false && siderot == false)
+                        side = true;
+                    //---------------------------------------------------------
+                    else if (sidevecX == false && sidevecY == false && siderot == true)
+                        side = false;
+                    else if (sidevecX == true && sidevecY == true && siderot == false)
+                        side = false;
+                    //----------------------------------------------------------
+                    else if (sidevecX == true && sidevecY == false && siderot == false)
+                        side = false;
+                    else if (sidevecX == true && sidevecY == false && siderot == true)
+                        side = true;
+                    //------------------------------------------------------------
+                    else if (sidevecX == false && sidevecY == true && siderot == true)
+                        side = false;
+                    else if (sidevecX == false && sidevecY == true && siderot == false)
+                        side = true;
+                    qDebug() << dotVec[i][j] << '|' << dotVec[i][j+1] << '\n' << dotVec[i+1][j] << '|' << dotVec[i+1][j+1] << '\n' << sidevecX << sidevecY <<siderot <<'|'<< side<< '\n' <<"------------------" << '\n';
+                    tempV.push_back(rotAndProjToPoint(dotVec[i][j], angles.alpha, angles.beta, angles.gamma));
+                    tempV.push_back(rotAndProjToPoint(dotVec[i][j+1], angles.alpha, angles.beta, angles.gamma));
+                    tempV.push_back(rotAndProjToPoint(dotVec[i+1][j+1], angles.alpha, angles.beta, angles.gamma));
+                    tempV.push_back(rotAndProjToPoint(dotVec[i+1][j], angles.alpha, angles.beta, angles.gamma));
+                    tempV.push_back(rotAndProjToPoint(dotVec[i][j], angles.alpha, angles.beta, angles.gamma));
+                    tempP = QPolygonF(tempV);
+                    tempL = new QGraphicsPolygonItem;
+                    tempL->setPolygon(tempP);
+                    if (side){
+                        tempL->setBrush(QBrush(QColor::fromRgbF(0, 128, 128, 0.33)));
+                    } else{
+                        tempL->setBrush(QBrush(QColor::fromRgbF(128, 0, 0, 0.33)));
+                    }
+                    poly.push_back(tempL);
+                    tempL = 0;
+                    tempV.clear();
+                }
+            }
+    }
 };
 
 #endif // BEZIERSURFACE_H

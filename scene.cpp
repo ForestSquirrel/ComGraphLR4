@@ -82,8 +82,8 @@ void Scene::mousePressEvent(QGraphicsSceneMouseEvent *event){
         origPoint = event->scenePos();
     else if (sceneMode == DrawSpline)
         origPoint = event->scenePos();
-    else if (sceneMode == DrawSurface)
-        origPoint = event->scenePos();
+    /*else if (sceneMode == DrawSurface)
+        origPoint = event->scenePos();*/ //deprecated
     QGraphicsScene::mousePressEvent(event);
 }
 void Scene::mouseDoubleClickEvent(QGraphicsSceneMouseEvent *e){
@@ -129,7 +129,7 @@ void Scene::mouseMoveEvent(QGraphicsSceneMouseEvent *event){
                            );
         data.clear();
     }
-    else if (sceneMode == DrawSurface){
+    /*else if (sceneMode == DrawSurface){
         if (!circleToDraw){
             circleToDraw =  new QGraphicsEllipseItem;
             this->addItem(circleToDraw);
@@ -138,7 +138,7 @@ void Scene::mouseMoveEvent(QGraphicsSceneMouseEvent *event){
                                   15,15);
         }
         circleToDraw->setPos(rotAndProjToPoint(QVector4D(event->scenePos().x(), event->scenePos().y(), 0, 1), angles.alpha, angles.beta, angles.gamma));
-    }
+    }*/ //deprecated
     else
         QGraphicsScene::mouseMoveEvent(event);
 }
@@ -181,7 +181,7 @@ void Scene::mouseReleaseEvent(QGraphicsSceneMouseEvent *event){
             spline.updateSpline(this, itemToDraw);
         }
     }
-    else if (sceneMode == DrawSurface){
+    /*else if (sceneMode == DrawSurface){
         this->removeItem(circleToDraw);
         circleToDraw = 0;
         cp3d = 0;
@@ -197,7 +197,7 @@ void Scene::mouseReleaseEvent(QGraphicsSceneMouseEvent *event){
         }
         cp3dvec.push_back(cp3d);
         cp3d = 0;
-    }
+    }*/ //deprecated
     else if (sceneMode == SelectObject){
         bool updatable = true;
         if (selectedItems().size() >= 1){
@@ -288,25 +288,25 @@ void Scene::keyPressEvent(QKeyEvent *event){
     }
     else if (event->key() == Qt::Key_Right){
         float tempA = qRadiansToDegrees(angles.alpha);
-        tempA++;
+        tempA+=10;
         angles.alpha = qDegreesToRadians(tempA);
         drawAxis(xAxis, yAxis, zAxis, angles.alpha, angles.beta, angles.gamma);
         updateSurface();
     }
     else if (event->key() == Qt::Key_Down){
         float tempB = qRadiansToDegrees(angles.beta);
-        tempB++;
+        tempB+=10;
         angles.beta = qDegreesToRadians(tempB);
         drawAxis(xAxis, yAxis, zAxis, angles.alpha, angles.beta, angles.gamma);
         updateSurface();
     }
-    else if (event->key() == Qt::Key_Up){
+    /*else if (event->key() == Qt::Key_Up){
         float tempG = qRadiansToDegrees(angles.gamma);
         tempG++;
         angles.gamma = qDegreesToRadians(tempG);
         drawAxis(xAxis, yAxis, zAxis, angles.alpha, angles.beta, angles.gamma);
         updateSurface();
-    }
+    }*/ //deprecated
     else
         QGraphicsScene::keyPressEvent(event);
 }
@@ -362,6 +362,20 @@ void Scene::keyReleaseEvent(QKeyEvent *event){
                  this->cp3dvec.push_back(surface.cpVec[i][j]);
              }
          updateSurface();
+     }
+     else if (event->key() == Qt::Key_C){
+         foreach(QGraphicsPolygonItem* p, surface.poly){
+             this->removeItem(p);
+         }
+         surface.handleDirections();
+         foreach(QGraphicsPolygonItem* p, surface.poly){
+             this->addItem(p);
+         }
+     }
+     else if (event->key() == Qt::Key_D){
+         foreach(QGraphicsPolygonItem* p, surface.poly){
+             this->removeItem(p);
+         }
      }
      else
          QGraphicsScene::keyReleaseEvent(event);
